@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.5" jmeter="5.5">
+    <hashTree>
+        <!-- 测试计划 -->
+        <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="PostgreSQL Performance Test" enabled="true">
+            <stringProp name="TestPlan.comments"></stringProp>
+            <boolProp name="TestPlan.functional_mode">false</boolProp>
+            <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+            <elementProp name="TestPlan.user_defined_variables" elementType="Arguments">
+                <collectionProp name="Arguments.arguments">
+                    <elementProp name="baseLimit" elementType="Argument">
+                        <stringProp name="Argument.name">baseLimit</stringProp>
+                        <stringProp name="Argument.value">1000</stringProp>
+                        <stringProp name="Argument.metadata">=</stringProp>
+                    </elementProp>
+                </collectionProp>
+            </elementProp>
+            <stringProp name="TestPlan.user_define_classpath"></stringProp>
+        </TestPlan>
+        <hashTree>
+            <!-- 线程组 -->
+            <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Basic Query Test" enabled="true">
+                <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+                <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+                    <boolProp name="LoopController.continue_forever">false</boolProp>
+                    <!-- 循环次数：-1 表示无限循环 -->
+                    <stringProp name="LoopController.loops">-1</stringProp>
+                </elementProp>
+                <!-- 线程数 -->
+                <stringProp name="ThreadGroup.num_threads">2</stringProp>
+                <!-- 递增准备时间 -->
+                <stringProp name="ThreadGroup.ramp_time">5</stringProp>
+                <!-- 总时长 -->
+                <longProp name="ThreadGroup.duration">30</longProp>
+                <!-- 是否使用调度器 -->
+                <boolProp name="ThreadGroup.scheduler">true</boolProp>
+            </ThreadGroup>
+            <hashTree>
+                <!-- JDBC 连接配置（改用 JDBCDataSource + TestBeanGUI 写法） -->
+                <JDBCDataSource guiclass="TestBeanGUI" testclass="JDBCDataSource"
+                                testname="JDBC Connection Configuration" enabled="true">
+                    <!-- 以下属性对应 TestBeanGUI 所需 -->
+                    <stringProp name="poolMax">100</stringProp>
+                    <stringProp name="timeout">5000</stringProp>
+                    <stringProp name="trimInterval">60000</stringProp>
+                    <boolProp name="autocommit">true</boolProp>
+                    <stringProp name="transactionIsolation">DEFAULT</stringProp>
+                    <boolProp name="preinit">false</boolProp>
+                    <stringProp name="initQuery"></stringProp>
+                    <boolProp name="keepAlive">true</boolProp>
+                    <stringProp name="connectionAge">5000</stringProp>
+                    <stringProp name="checkQuery">Select 1</stringProp>
+
+                    <!-- 下面对应你的数据库信息 -->
+                    <stringProp name="dbUrl">jdbc:postgresql://host.docker.internal:5432/smarthome</stringProp>
+                    <stringProp name="driver">org.postgresql.Driver</stringProp>
+                    <stringProp name="username">taoting</stringProp>
+                    <stringProp name="password">0000</stringProp>
+
+                    <!-- dataSource名称，与后面 Sampler 对应 -->
+                    <stringProp name="dataSource">test_pool</stringProp>
+                </JDBCDataSource>
+                <hashTree/>
+
+                <!-- JDBC Sampler（改用 JDBCSampler + TestBeanGUI 写法） -->
+                <JDBCSampler guiclass="TestBeanGUI" testclass="JDBCSampler" testname="Basic Query" enabled="true">
+                    <stringProp name="dataSource">test_pool</stringProp>
+                    <!-- 实际执行的 SQL -->
+                    <stringProp name="query">
+                        SELECT *
+                        FROM sensormesswert
+                        WHERE sensorid = ?
+                        AND timestamp BETWEEN ? AND ?
+                        LIMIT 100
+                    </stringProp>
+                    <stringProp name="queryArguments">5006,2021-01-01 00:00:00,2021-10-02 00:00:00</stringProp>
+                    <stringProp name="queryArgumentsTypes">Integer,Timestamp,Timestamp</stringProp>
+
+                    <!-- 其他 TestBeanGUI 需要的属性，可适当保留或空置 -->
+                    <stringProp name="queryTimeout"></stringProp>
+                    <stringProp name="queryType">Select Statement</stringProp>
+                    <stringProp name="resultSetHandler">Store as String</stringProp>
+                    <stringProp name="resultSetMaxRows"></stringProp>
+                    <stringProp name="resultVariable"></stringProp>
+                    <stringProp name="variableNames"></stringProp>
+                </JDBCSampler>
+                <hashTree/>
+
+                <!-- InfluxDB Backend Listener（原封不动保留） -->
+                <BackendListener guiclass="BackendListenerGui" testclass="BackendListener"
+                                 testname="InfluxDB Backend Listener" enabled="true">
+                    <elementProp name="arguments" elementType="Arguments">
+                        <collectionProp name="Arguments.arguments">
+                            <elementProp name="influxdbMetricsSender" elementType="Argument">
+                                <stringProp name="Argument.name">influxdbMetricsSender</stringProp>
+                                <stringProp name="Argument.value">
+                                    org.apache.jmeter.visualizers.backend.influxdb.HttpMetricsSender
+                                </stringProp>
+                            </elementProp>
+                            <elementProp name="influxdbUrl" elementType="Argument">
+                                <stringProp name="Argument.name">influxdbUrl</stringProp>
+                                <stringProp name="Argument.value">
+                                    http://${influxdb.host}:${influxdb.port}/write?db=${influxdb.bucket}
+                                </stringProp>
+                            </elementProp>
+                            <elementProp name="influxdbToken" elementType="Argument">
+                                <stringProp name="Argument.name">influxdbToken</stringProp>
+                                <stringProp name="Argument.value">${influxdb.token}</stringProp>
+                            </elementProp>
+                            <elementProp name="application" elementType="Argument">
+                                <stringProp name="Argument.name">application</stringProp>
+                                <stringProp name="Argument.value">JMeter</stringProp>
+                            </elementProp>
+                            <elementProp name="measurement" elementType="Argument">
+                                <stringProp name="Argument.name">measurement</stringProp>
+                                <stringProp name="Argument.value">jmeter</stringProp>
+                            </elementProp>
+                        </collectionProp>
+                    </elementProp>
+                </BackendListener>
+                <hashTree/>
+
+                <!-- 查看结果树/统计等 -->
+                <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector"
+                                 testname="View Results" enabled="true">
+                    <boolProp name="ResultCollector.error_logging">false</boolProp>
+                    <stringProp name="filename">summary.jtl</stringProp>
+                </ResultCollector>
+                <hashTree/>
+            </hashTree>
+        </hashTree>
+    </hashTree>
+</jmeterTestPlan>

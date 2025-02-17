@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 15s     # 默认为 15 秒抓取一次
+  evaluation_interval: 15s # 规则评估周期
+
+scrape_configs:
+  # 抓取 Prometheus 自身指标
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 抓取 PostgreSQL Exporter
+  - job_name: 'postgres_exporter'
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+        # ↑ 这个地址对应 docker-compose 中 services.postgres_exporter 的服务名:端口
+
+  - job_name: 'elastic_exporter'
+    static_configs:
+      - targets: ['elastic_exporter:9114']
+        # ↑ 这个地址对应 docker-compose 中 services.elastic_exporter 的服务名:端口
+
+  - job_name: 'vector'
+    static_configs:
+      - targets: ['vector:9598']
+    metrics_path: /metrics

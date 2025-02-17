@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.5" jmeter="5.5">
+    <hashTree>
+        <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="PostgreSQL Performance Test" enabled="false">
+            <stringProp name="TestPlan.comments"></stringProp>
+            <boolProp name="TestPlan.functional_mode">false</boolProp>
+            <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+            <elementProp name="TestPlan.user_defined_variables" elementType="Arguments">
+                <collectionProp name="Arguments.arguments">
+                    <elementProp name="baseLimit" elementType="Argument">
+                        <stringProp name="Argument.name">baseLimit</stringProp>
+                        <stringProp name="Argument.value">1000</stringProp>
+                        <stringProp name="Argument.metadata">=</stringProp>
+                    </elementProp>
+                </collectionProp>
+            </elementProp>
+            <stringProp name="TestPlan.user_define_classpath"></stringProp>
+        </TestPlan>
+        <hashTree>
+            <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Basic Query Test" enabled="true">
+                <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+                <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+                    <boolProp name="LoopController.continue_forever">false</boolProp>
+                    <stringProp name="LoopController.loops">-1</stringProp>
+                </elementProp>
+                <stringProp name="ThreadGroup.num_threads">${threads}</stringProp>
+                <stringProp name="ThreadGroup.ramp_time">${rampup}</stringProp>
+                <longProp name="ThreadGroup.duration">${duration}</longProp>
+                <boolProp name="ThreadGroup.scheduler">true</boolProp>
+            </ThreadGroup>
+            <hashTree>
+                <ConfigTestElement guiclass="JDBCDataSourceElement" testclass="JDBCDataSource" testname="JDBC Connection Configuration" enabled="true">
+                    <stringProp name="dataSource">PostgresDataSource</stringProp>
+                    <stringProp name="dataSource.poolMax">100</stringProp>
+                    <stringProp name="dataSource.timeout">5000</stringProp>
+                    <stringProp name="dataSource.driver">org.postgresql.Driver</stringProp>
+                    <stringProp name="dataSource.url">jdbc:postgresql://host.docker.internal:5432/smarthome</stringProp>
+                    <stringProp name="dataSource.username">taoting</stringProp>
+                    <stringProp name="dataSource.password">0000</stringProp>
+                </ConfigTestElement>
+                <CSVDataSet guiclass="CSVDataSetGui" testclass="CSVDataSet" testname="Sensor IDs" enabled="true">
+                    <stringProp name="filename">sensorids.csv</stringProp>
+                    <stringProp name="variableNames">sensorid</stringProp>
+                    <stringProp name="delimiter">,</stringProp>
+                    <boolProp name="quotedData">false</boolProp>
+                    <boolProp name="recycle">true</boolProp>
+                    <boolProp name="stopThread">false</boolProp>
+                </CSVDataSet>
+                <CSVDataSet guiclass="CSVDataSetGui" testclass="CSVDataSet" testname="Datatype IDs" enabled="true">
+                    <stringProp name="filename">datatypeids.csv</stringProp>
+                    <stringProp name="variableNames">datatypeid</stringProp>
+                    <stringProp name="delimiter">,</stringProp>
+                    <boolProp name="quotedData">false</boolProp>
+                    <boolProp name="recycle">true</boolProp>
+                    <boolProp name="stopThread">false</boolProp>
+                </CSVDataSet>
+                <JDBCSampler guiclass="JDBCSamplerGui" testclass="JDBCSampler" testname="Basic Query" enabled="true">
+                    <stringProp name="dataSource">PostgresDataSource</stringProp>
+                    <stringProp name="query">
+                        SELECT * FROM sensormesswert
+                        WHERE sensorid = ?
+                        AND timestamp BETWEEN ? AND ?
+                        LIMIT ${limit}
+                    </stringProp>
+                    <stringProp name="queryArguments">${sensorid},${__timeShift(yyyy-MM-dd HH:mm:ss,,-P1D)},${__time(yyyy-MM-dd HH:mm:ss)}</stringProp>
+                    <stringProp name="queryArgumentsTypes">Integer,Timestamp,Timestamp</stringProp>
+                    <stringProp name="resultVariable"></stringProp>
+                    <stringProp name="queryType">Select Statement</stringProp>
+                </JDBCSampler>
+                <JDBCSampler guiclass="JDBCSamplerGui" testclass="JDBCSampler" testname="Aggregation Query" enabled="true">
+                    <stringProp name="dataSource">PostgresDataSource</stringProp>
+                    <stringProp name="query">
+                        SELECT s.datentypid, d.datentyp, COUNT(*), AVG(CAST(m.messwert AS FLOAT))
+                        FROM sensormesswert m
+                        JOIN sensor s ON m.sensorid = s.sensorid
+                        JOIN datentyp d ON s.datentypid = d.datentypid
+                        WHERE s.datentypid = ?
+                        AND m.timestamp >= ?
+                        GROUP BY s.datentypid, d.datentyp
+                    </stringProp>
+                    <stringProp name="queryArguments">${datentypid},${__timeShift(yyyy-MM-dd HH:mm:ss,,-P1D)}</stringProp>
+                    <stringProp name="queryArgumentsTypes">Integer,Timestamp</stringProp>
+                </JDBCSampler>
+                <JDBCSampler guiclass="JDBCSamplerGui" testclass="JDBCSampler" testname="Partition Query" enabled="true">
+                    <stringProp name="dataSource">PostgresDataSource</stringProp>
+                    <stringProp name="query">
+                        SELECT COUNT(*)
+                        FROM sensormesswert
+                        WHERE timestamp BETWEEN '2021-09-01' AND '2023-12-01'
+                        AND sensorid = ?
+                    </stringProp>
+                    <stringProp name="queryArguments">${sensorid}</stringProp>
+                    <stringProp name="queryArgumentsTypes">Integer</stringProp>
+                </JDBCSampler>
+                <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results" enabled="true">
+                    <boolProp name="ResultCollector.error_logging">false</boolProp>
+                    <stringProp name="filename">summary.jtl</stringProp>
+                </ResultCollector>
+                <BackendListener guiclass="BackendListenerGui" testclass="BackendListener" testname="InfluxDB Listener" enabled="true">
+                    <elementProp name="arguments" elementType="Arguments">
+                        <collectionProp name="Arguments.arguments">
+                            <elementProp name="influxdbUrl" elementType="Argument">
+                                <stringProp name="Argument.name">influxdbUrl</stringProp>
+                                <stringProp name="Argument.value">http://localhost:8086/write?db=jmeter</stringProp>
+                            </elementProp>
+                            <elementProp name="application" elementType="Argument">
+                                <stringProp name="Argument.name">application</stringProp>
+                                <stringProp name="Argument.value">db_test</stringProp>
+                            </elementProp>
+                            <elementProp name="measurement" elementType="Argument">
+                                <stringProp name="Argument.name">measurement</stringProp>
+                                <stringProp name="Argument.value">performance</stringProp>
+                            </elementProp>
+                        </collectionProp>
+                    </elementProp>
+                </BackendListener>
+            </hashTree>
+        </hashTree>
+    </hashTree>
+</jmeterTestPlan> 

@@ -1,0 +1,5 @@
+# Kibana 配置
+server.name: "kibana"
+server.host: "0.0.0.0"
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+enterpriseSearch.host: 'http://elasticsearch:9200'

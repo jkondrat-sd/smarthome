@@ -1,0 +1,22 @@
+# 数据源名称，指定连接 PostgreSQL 的方式
+data_source_name: "postgresql://taoting:0000@host.docker.internal:5432/smarthome?sslmode=disable"
+
+# 是否禁用 PostgreSQL 设置相关的指标
+disable_settings_metrics: false
+
+# 启用的指标收集器
+collect:
+  # 是否收集数据库的统计信息
+  database: true
+  # 是否收集表的统计信息
+  table: true
+  # 是否收集索引的统计信息
+  index: true
+  # 是否收集功能性统计信息（如缓存命中率等）
+  function: true
+  # 是否收集序列的统计信息
+  sequence: true
+
+# 日志级别
+log_level: "info"
+

@@ -1,0 +1,40 @@
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/*.log
+  - type: log #type: log 来标识它正在处理的是日志文件（即普通的文本日志文件）
+    enabled: true
+    paths:
+      - /var/log/jmeter/*.log
+    fields:
+      log_type: jmeter #在配置中明确指定 log_type 字段（例如 log_type: jmeter），然后在 Logstash 的过滤器中根据这个字段来区分处理逻辑
+    #如果 fields_under_root: false（默认值）：自定义字段会嵌套在 fields 字段中。
+    #如果 fields_under_root: true：自定义字段会直接提升到日志事件的根级别。
+    fields_under_root: true
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/smarthome/*.log
+    fields:
+      log_type: smarthome
+    fields_under_root: true
+
+
+#filebeat.config.modules:
+#  path: ${path.config}/modules.d/*.yml
+#  reload.enabled: false
+
+
+# Output to Logstash
+output.logstash:
+  hosts: ["logstash:5044"]
+
+# 其他可选的配置，如：
+# filebeat.config.modules:
+#   path: ${path.config}/modules.d/*.yml
+#   reload.enabled: false
+
+# Logging 配置可按需添加
+logging.level: info
+logging.to_files: false

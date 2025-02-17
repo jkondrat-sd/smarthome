@@ -1,0 +1,17 @@
+pg_stat_bgwriter:
+  query: |
+    SELECT
+      checkpoints_req AS checkpoints_requested,
+      buffers_alloc AS buffers_allocated
+    FROM pg_stat_bgwriter;
+  metrics:
+    - name: postgres_stat_bgwriter_checkpoints_requested
+      type: counter
+      help: Total number of requested checkpoints
+      values:
+        - checkpoints_requested
+    - name: postgres_stat_bgwriter_buffers_allocated
+      type: counter
+      help: Total number of buffers allocated
+      values:
+        - buffers_allocated

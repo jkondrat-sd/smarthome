@@ -1,0 +1,176 @@
+
+services:
+  elasticsearch:
+    image: elastic/elasticsearch:8.17.0
+    container_name: elasticsearch_smarthome
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      # 如果需要设置默认的 elastic 用户密码
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - smarthome-network
+
+  kibana:
+    image: kibana:8.17.0
+    container_name: kibana_smarthome
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - xpack.security.enabled=false
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    networks:
+      - smarthome-network
+
+  postgres_exporter:
+    image:  bitnami/postgres-exporter:latest
+    container_name: postgres_exporter_smarthome
+    environment:
+      DATA_SOURCE_NAME: "postgresql://taoting:0000@host.docker.internal:5432/smarthome?sslmode=disable"
+    command:
+      - '--no-collector.stat_bgwriter'
+    ports:
+      - "9187:9187"
+    networks:
+        - smarthome-network
+
+  elastic_exporter:
+    image: prometheuscommunity/elasticsearch-exporter:latest
+    container_name: elastic_exporter_smarthome
+    command:
+      - '--es.uri=http://elasticsearch:9200'
+    ports:
+      - "9114:9114"
+    networks:
+      - smarthome-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus_smarthome
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - /Users/taoting/docker_shared/prometheus_smarthome:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+    ports:
+        - "9090:9090"
+    networks:
+        - smarthome-network
+
+  logstash:
+    image: logstashjdbc:8.7.0
+    container_name: logstash_smarthome
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - /Users/taoting/docker_shared/logstash_smarthome/:/usr/share/logstash/logstash_smarthome
+      - ./logstash/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
+    ports:
+      - "5044:5044"
+      - "9600:9600"  # Logstash 监控端口（可选）
+    environment:
+      LS_JAVA_OPTS: "-Xms1g -Xmx1g"
+    networks:
+      - smarthome-network
+
+  filebeat:
+    image: elastic/filebeat:8.16.2
+    container_name: filebeat_smarthome
+    depends_on:
+      - logstash
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /Users/taoting/docker_shared/filebeat_smarthome/modules.d:/usr/share/filebeat/modules.d:ro
+      - /Users/taoting/docker_shared/jmeter_smarthome/result:/var/log/jmeter
+      - /Users/taoting/docker_shared/postgresql_log:/var/log/postgresql
+      - /Users/taoting/Documents/BA/smarthome/test_log:/var/log
+      - /Users/taoting/Documents/BA/smarthome/log/bs_org:/var/log/smarthome
+    environment:
+      - "TZ=Europa/Berlin"  # 需要的话可以设置时区
+    networks:
+      - smarthome-network
+
+  grafana:
+    image: grafana/grafana-oss:11.4.0-ubuntu
+    container_name: grafana_smarthome
+    depends_on:
+      - elasticsearch
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin  # Grafana 管理员用户名
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # Grafana 管理员密码
+    networks:
+      - smarthome-network
+
+
+
+  influxdb:
+    # api: _E54KJzkQzuq0oiGe690MxHYnXIzLP3NFNaDW9qEJfXYaMIZ22yhWZ3tcV6skkW5PAOU3wUCCzh72hj1MFxLWg==
+    image: influxdb:latest
+    profiles:
+      - disabled
+    container_name: influxdb_smarthome
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: influxdb
+      DOCKER_INFLUXDB_INIT_PASSWORD: influxdb
+      DOCKER_INFLUXDB_INIT_ORG: smarthome
+      DOCKER_INFLUXDB_INIT_BUCKET: smarthome  # 指定 bucket
+      DOCKER_INFLUXDB_INIT_RETENTION: 1d   # 数据保留时间
+    volumes:
+      - /Users/taoting/docker_shared/influxdb_smarthome:/var/lib/influxdb
+    networks:
+      - smarthome-network
+
+  jmeter:
+    image: alpine/jmeter:latest
+    container_name: jmeter_smarthome
+    profiles:
+      - disabled
+    volumes:
+      - /Users/taoting/docker_shared/jmeter_smarthome/result:/result
+      - /Users/taoting/docker_shared/jmeter_smarthome/test:/test
+      - /Users/taoting/docker_shared/jmeter_smarthome/postgresql-42.7.4.jar:/opt/apache-jmeter-5.6.3/lib/postgresql-42.7.4.jar
+      - /Users/taoting/docker_shared/jmeter_smarthome/jmeter-plugins-influxdb2-listener-2.8.jar:/opt/apache-jmeter-5.6.3/lib/ext/jmeter-plugins-influxdb2-listener-2.8.jar
+      - /Users/taoting/docker_shared/jmeter_smarthome/jmeter-plugins-manager-1.10.jar:/opt/apache-jmeter-5.6.3/lib/ext/jmeter-plugins-manager-1.10.jar
+    command:
+      - -n
+      - -t
+      - /test/simple_test02.xml
+      - -l
+      - /result/result.log
+      - -j
+      - /result/jmeterlog/jmeter.log
+    networks:
+      - smarthome-network
+
+networks:
+  smarthome-network:
+    driver: bridge
+
+volumes:
+  esdata:
+    driver: local
+  grafana_data:
+    driver: local
+  influxdb_data:
+    driver: local

@@ -1,0 +1,4 @@
+- module: postgresql
+  log:
+    enabled: false
+    var.paths: ["/var/log/postgresql/*.log"]  # 这里指定 PostgreSQL 日志路径
