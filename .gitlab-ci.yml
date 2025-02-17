@@ -2,7 +2,8 @@ stages:
   - backup
 
 variables:
-  BACKUP_DIR: /Volumes/acasis/backup/
+  BACKUP_DIR: backup
+  REAL_BACKUP_DIR: /Volumes/acasis/backup
   TIMESTAMP: "$(date +'%Y%m%d%H%M')"
   CONTAINER_NAME: gitlab-ce
 
@@ -19,12 +20,14 @@ backup_gitlab_container:
     - docker ps -a
     - echo "开始备份容器 ${CONTAINER_NAME} ..."
     - mkdir -p "${BACKUP_DIR}"
+    - export TIMESTAMP=$(date +'%Y%m%d%H%M')
     - docker export "${CONTAINER_NAME}" > "${BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
+    - cp "${BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar" "${REAL_BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
     - echo "备份完成：${BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
 
   artifacts:
     paths:
-      - "${BACKUP_DIR}/*.tar"
+      - backup/*.tar
     expire_in: 7 days
 
   only:
