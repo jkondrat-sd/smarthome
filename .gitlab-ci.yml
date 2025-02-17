@@ -1,5 +1,7 @@
 test_job:
   image: alpine:latest
+  tags: 
+      - backup
   script:
     - echo "Hello from inside container!"
     - uname -a
