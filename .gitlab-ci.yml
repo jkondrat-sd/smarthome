@@ -1,40 +1,5 @@
-stages:
-  - backup
-
-variables:
-  # 设置备份输出目录（在 CI 作业工作目录下）
-  BACKUP_DIR: /Volumes/acasis/backup/
-  # 用当前日期时间作为备份文件的后缀
-  TIMESTAMP: "$(date +'%Y%m%d%H%M')"
-  # 假设 GitLab 容器名称为 gitlab（请根据实际情况修改）
-  CONTAINER_NAME: gitlab-ce
-
-backup_gitlab_container:
-  stage: backup
-  tags: 
-    - backup
-  image: docker:latest
-  services:
-    # 如果使用 DinD 模式，需要启动 docker:dind 服务
-    - name: docker:dind
-      alias: docker
-      command: ["--tls=false", "--host=tcp://0.0.0.0:2375"]
-  variables:
-    # 在 DinD 模式下可能需要指定 Docker 存储驱动
-    DOCKER_DRIVER: overlay2
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
+test_job:
+  image: alpine:latest
   script:
-    - echo "列出所有容器："
-    - docker ps -a
-    - echo "开始备份容器 ${CONTAINER_NAME} ..."
-    # 导出容器的文件系统为 tar 包
-    - mkdir -p ${BACKUP_DIR}
-    - docker export ${CONTAINER_NAME} > ${BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar
-    - echo "备份完成：${BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
-  artifacts:
-    paths:
-      - ${BACKUP_DIR}/*.tar
-    expire_in: 7 days
-  only:
-    - schedules
+    - echo "Hello from inside container!"
+    - uname -a
