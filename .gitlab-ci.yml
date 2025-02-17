@@ -1,7 +1,31 @@
-test_job:
-  image: alpine:latest
-  tags: 
-      - backup
+stages:
+  - backup
+
+variables:
+  BACKUP_DIR: /Volumes/acasis/backup/
+  TIMESTAMP: "$(date +'%Y%m%d%H%M')"
+  CONTAINER_NAME: gitlab-ce
+
+backup_gitlab_container:
+  stage: backup
+  # 如果你是用 shell executor，就把下面的 tags 改成跟你的 shell runner 匹配的 tag
+  tags:
+    - backup
+
   script:
-    - echo "Hello from inside container!"
-    - uname -a
+    - echo "Test Docker："
+    - docker run --rm hello-world
+    - echo "列出所有容器："
+    - docker ps -a
+    - echo "开始备份容器 ${CONTAINER_NAME} ..."
+    - mkdir -p "${BACKUP_DIR}"
+    - docker export "${CONTAINER_NAME}" > "${BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
+    - echo "备份完成：${BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
+
+  artifacts:
+    paths:
+      - "${BACKUP_DIR}/*.tar"
+    expire_in: 7 days
+
+  only:
+    - schedules
