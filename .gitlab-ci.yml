@@ -22,14 +22,9 @@ backup_gitlab_container:
     - TIMESTAMP="$(date +'%Y%m%d%H%M')"
     - docker export "${CONTAINER_NAME}" > "${BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
     - cp "${BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar" "${REAL_BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
+    - rm -f "${BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
     - echo "备份完成：${BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
     - echo "本地硬盘备份路径：${REAL_BACKUP_DIR}/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
-    - echo "GitLab Artifacts path：backup/${CONTAINER_NAME}_backup_${TIMESTAMP}.tar"
-
-  artifacts:
-    paths:
-      - backup/*.tar
-    expire_in: 7 days
 
   only:
     - schedules
