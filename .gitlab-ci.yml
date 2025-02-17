@@ -16,10 +16,14 @@ backup_gitlab_container:
   image: docker:latest
   services:
     # 如果使用 DinD 模式，需要启动 docker:dind 服务
-    - docker:dind
+    - name: docker:dind
+      alias: docker
+      command: ["--tls=false", "--host=tcp://0.0.0.0:2375"]
   variables:
     # 在 DinD 模式下可能需要指定 Docker 存储驱动
     DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   script:
     - echo "列出所有容器："
     - docker ps -a
