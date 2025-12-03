@@ -155,7 +155,7 @@ services:
     command:
       - -n
       - -t
-      - /test/simple_test02.xml
+      - /test/simple_test01.xml
       - -l
       - /result/result.log
       - -j

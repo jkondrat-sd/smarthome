@@ -8,7 +8,6 @@ variables:
 
 backup_gitlab_container:
   stage: backup
-  # 如果你是用 shell executor，就把下面的 tags 改成跟你的 shell runner 匹配的 tag
   tags:
     - backup
 
