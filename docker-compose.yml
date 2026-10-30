@@ -32,7 +32,7 @@ services:
       - smarthome-network
 
   postgres_exporter:
-    image:  bitnami/postgres-exporter:latest
+    image:  soldevelo/postgres-exporter:latest
     container_name: postgres_exporter_smarthome
     environment:
       DATA_SOURCE_NAME: "postgresql://taoting:0000@host.docker.internal:5432/smarthome?sslmode=disable"
